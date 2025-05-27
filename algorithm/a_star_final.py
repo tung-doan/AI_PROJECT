@@ -44,7 +44,7 @@ def find_path(maze_obj, return_search_steps=False):
     # Tạo ma trận g_score để lưu trữ chi phí từ điểm bắt đầu đến mỗi ô
     g_score = np.full((height, width), np.inf)
     g_score[start] = 0
-    
+
     # Tạo ma trận f_score để lưu trữ chi phí ước tính từ mỗi ô đến đích
     f_score = np.full((height, width), np.inf)
     f_score[start] = manhattan_distance(start, end)
@@ -59,13 +59,13 @@ def find_path(maze_obj, return_search_steps=False):
     open_set = [(f_score[start], 0, count, start)]
     heapq.heapify(open_set)
     
-    # Các hướng có thể di chuyển: lên, phải, xuống, trái
+    # Các hướng có thể di chuyển
     directions = [(-1, 0), (0, 1), (1, 0), (0, -1)]
     
     # Lưu các bước tìm kiếm và lịch sử frontier
     search_steps = [start] if return_search_steps else None
     frontier_history = [[start]] if return_search_steps else None
-    
+        
     # A* để tìm đường đi
     found = False
     while open_set and not found:
@@ -241,10 +241,9 @@ def visualize_search_process(maze_obj, speed=100):
     
     # Tạo hình vẽ
     fig, ax = plt.subplots(figsize=(10, 10))
-    
     # Vẽ nền trắng cho toàn bộ mê cung
     ax.set_facecolor('white')
-    
+
     # Duyệt qua tất cả các ô trong mê cung
     for i in range(height):
         for j in range(width):
