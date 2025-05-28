@@ -1,34 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.patches import Rectangle
+from matplotlib.patches import Rectangle, Patch
 import matplotlib.animation as animation
 from collections import deque
 import sys
 import os
 
 def find_path(maze_obj, return_search_steps=False):
-    """
-    Tìm đường đi từ điểm bắt đầu đến điểm kết thúc trong mê cung bằng DFS.
-
-    Args:
-        maze_obj: Instance của lớp Maze, với thuộc tính:
-            - maze: Ma trận numpy (0: đường đi, 1: tường).
-            - start: Tọa độ (x, y) của điểm bắt đầu.
-            - end: Tọa độ (x, y) của điểm kết thúc.
-        return_search_steps: Nếu True, trả về các bước tìm kiếm và trạng thái stack.
-
-    Returns:
-        tuple:
-            - path: List tọa độ (x, y) từ start đến end, hoặc None nếu không có đường.
-            - steps: Tuple (search_steps, stack_steps) nếu return_search_steps=True, với:
-                - search_steps: List tọa độ (x, y) theo thứ tự thăm.
-                - stack_steps: List các trạng thái stack (danh sách tọa độ).
-            - error: String mô tả lỗi (nếu có, ví dụ: "No path exists"), hoặc None nếu thành công.
-
-    Complexity:
-        - Time: O(V + E), với V là số ô, E là số cạnh.
-        - Space: O(V) cho visited, parent, stack, và search_steps.
-    """
     maze = maze_obj.maze
     start_pos = maze_obj.start
     end_pos = maze_obj.end
@@ -53,7 +31,6 @@ def find_path(maze_obj, return_search_steps=False):
         if return_search_steps and current_pos not in search_steps_set:
             search_steps.append(current_pos)
             search_steps_set.add(current_pos)
-            stack_steps.append(list(stack))
 
         if current_pos == end_pos:
             found = True
@@ -69,8 +46,9 @@ def find_path(maze_obj, return_search_steps=False):
                 stack.append(next_pos)
                 visited[next_x, next_y] = True
                 parent[next_x, next_y] = [current_x, current_y]
-                if return_search_steps:
-                    stack_steps.append(list(stack))
+
+        if return_search_steps:
+            stack_steps.append(list(stack))
 
     if found:
         path = []
@@ -175,18 +153,6 @@ def visualize_maze_with_path(maze_obj, path):
     plt.show()
 
 def create_dfs_animation(maze_obj, interval=100, save_animation=False, show_plot=True):
-    """
-    Tạo animation trực quan hóa thuật toán DFS với giao diện giống Pygame.
-
-    Args:
-        maze_obj: Instance của lớp Maze chứa thông tin mê cung.
-        interval: Thời gian giữa các frame (ms).
-        save_animation: Lưu animation thành file video.
-        show_plot: Hiển thị animation trên màn hình.
-
-    Returns:
-        tuple: (path, (search_steps, stack_steps), error) từ find_path.
-    """
     result = find_path(maze_obj, return_search_steps=True)
     path, (search_steps, stack_steps), error = result
 
@@ -201,17 +167,16 @@ def create_dfs_animation(maze_obj, interval=100, save_animation=False, show_plot
     maze = maze_obj.maze
     height, width = maze.shape
 
-    # Màu sắc giống Pygame
     COLORS = {
-        'background': '#FFFFFF',  # Trắng
-        'wall': '#000000',        # Đen
-        'start': '#0000FF',       # Xanh dương
-        'end': '#FFA500',         # Cam
-        'current': '#40E0D0',     # Turquoise
-        'stack': '#00FF00',       # Xanh lá
-        'explored': '#FF0000',    # Đỏ
-        'path': '#800080',        # Tím
-        'grid': '#000000'         # Lưới đen
+        'background': '#FFFFFF',
+        'wall': '#000000',
+        'start': '#0000FF',
+        'end': '#FFA500',
+        'current': '#40E0D0',
+        'stack': '#00FF00',
+        'explored': '#FF0000',
+        'path': '#800080',
+        'grid': '#000000'
     }
 
     fig = plt.figure(figsize=(10, 10), facecolor=COLORS['background'])
@@ -219,32 +184,30 @@ def create_dfs_animation(maze_obj, interval=100, save_animation=False, show_plot
     ax.set_facecolor(COLORS['background'])
 
     # Vẽ mê cung
-    rgb_data = np.ones((height, width, 3))  # Nền trắng
+    rgb_data = np.ones((height, width, 3))
     for i in range(height):
         for j in range(width):
             if maze[i, j] == 1:
-                rgb_data[i, j] = np.array([0, 0, 0])  # Tường đen
-
+                rgb_data[i, j] = np.array([0, 0, 0])
     ax.imshow(rgb_data)
 
-    # Vẽ lưới đen
+    # Vẽ lưới
     for i in range(height + 1):
         ax.axhline(i - 0.5, color=COLORS['grid'], linewidth=2)
     for j in range(width + 1):
         ax.axvline(j - 0.5, color=COLORS['grid'], linewidth=2)
 
-    # Vẽ start và end
+    # Vẽ điểm bắt đầu và kết thúc
     start_pos = maze_obj.start
     end_pos = maze_obj.end
-    ax.plot(start_pos[1], start_pos[0], 'o', color=COLORS['start'], markersize=8)
-    ax.plot(end_pos[1], end_pos[0], 'o', color=COLORS['end'], markersize=8)
+    ax.add_patch(Rectangle((start_pos[1] - 0.5, start_pos[0] - 0.5), 1, 1, facecolor=COLORS['start'], alpha=1.0, zorder=1))
+    ax.add_patch(Rectangle((end_pos[1] - 0.5, end_pos[0] - 0.5), 1, 1, facecolor=COLORS['end'], alpha=1.0, zorder=1))
 
-    # Khởi tạo các plot
-    explored_plot, = ax.plot([], [], 'o', color=COLORS['explored'], markersize=4, alpha=0.4)
-    current_plot, = ax.plot([], [], 'o', color=COLORS['current'], markersize=7, alpha=0.8)
-    stack_plot, = ax.plot([], [], 'o', color=COLORS['stack'], markersize=4, alpha=0.6)
-    path_plot, = ax.plot([], [], color=COLORS['path'], linewidth=2)
-    path_markers, = ax.plot([], [], 'o', color=COLORS['path'], markersize=4)
+    # Khởi tạo các patch
+    explored_patches = []
+    current_patch = None
+    stack_patches = []
+    path_patches = []
 
     ax.set_xlim(-0.5, width - 0.5)
     ax.set_ylim(-0.5, height - 0.5)
@@ -253,69 +216,79 @@ def create_dfs_animation(maze_obj, interval=100, save_animation=False, show_plot
     ax.invert_yaxis()
     ax.set_aspect('equal')
 
-    title = ax.set_title('Tìm kiếm DFS: Bước 0')
+    # Chú thích (legend) với màu sắc và alpha chính xác
     legend_elements = [
-        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=COLORS['start'], markersize=8, label='Điểm bắt đầu'),
-        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=COLORS['end'], markersize=8, label='Điểm kết thúc'),
-        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=COLORS['current'], markersize=8, label='Đang xét'),
-        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=COLORS['stack'], markersize=8, label='Trong Stack'),
-        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=COLORS['explored'], markersize=8, label='Đã xét'),
-        plt.Line2D([0], [0], color=COLORS['path'], label='Đường đi')
+        Patch(facecolor=COLORS['start'], edgecolor='none', alpha=1.0, label='Điểm bắt đầu'),
+        Patch(facecolor=COLORS['end'], edgecolor='none', alpha=1.0, label='Điểm kết thúc'),
+        Patch(facecolor=COLORS['current'], edgecolor='none', alpha=0.8, label='Đang xét'),
+        Patch(facecolor=COLORS['stack'], edgecolor='none', alpha=0.6, label='Trong Stack'),
+        Patch(facecolor=COLORS['explored'], edgecolor='none', alpha=0.4, label='Đã xét'),
+        Patch(facecolor=COLORS['path'], edgecolor='none', alpha=0.8, label='Đường đi')
     ]
-    ax.legend(handles=legend_elements, loc='upper right', fontsize='small')
+    ax.legend(handles=legend_elements, loc='upper right', fontsize=10, frameon=True, edgecolor='black')
 
-    explored_x, explored_y = [], []
+    title = ax.set_title('Tìm kiếm DFS: Bước 0')
 
     def init():
-        current_plot.set_data([], [])
-        explored_plot.set_data([], [])
-        stack_plot.set_data([], [])
-        path_plot.set_data([], [])
-        path_markers.set_data([], [])
+        nonlocal current_patch, explored_patches, stack_patches, path_patches
+        for patch in explored_patches + stack_patches + ([current_patch] if current_patch else []) + path_patches:
+            patch.remove()
+        explored_patches.clear()
+        stack_patches.clear()
+        path_patches.clear()
+        current_patch = None
         title.set_text('Tìm kiếm DFS: Bước 0')
-        return current_plot, explored_plot, stack_plot, path_plot, path_markers, title
+        return []
 
     def update(frame):
+        nonlocal current_patch, explored_patches, stack_patches, path_patches
+        # Chỉ xóa stack_patches và path_patches, giữ explored_patches và current_patch
+        for patch in stack_patches + path_patches:
+            if patch:
+                patch.remove()
+        if current_patch:
+            current_patch.remove()
+        stack_patches.clear()
+        path_patches.clear()
+        current_patch = None
+
         if frame < len(search_steps):
             current_cell = search_steps[frame]
-            current_plot.set_data([current_cell[1]], [current_cell[0]])
+            current_patch = Rectangle((current_cell[1] - 0.5, current_cell[0] - 0.5), 1, 1, 
+                                    facecolor=COLORS['current'], alpha=0.8, zorder=3)
+            ax.add_patch(current_patch)
 
             if frame > 0:
-                explored_x.append(search_steps[frame-1][1])
-                explored_y.append(search_steps[frame-1][0])
-                explored_plot.set_data(explored_x, explored_y)
-            else:
-                explored_plot.set_data([], [])
+                prev_cell = search_steps[frame-1]
+                if prev_cell not in [start_pos, end_pos]:  # Không ghi đè điểm bắt đầu/kết thúc
+                    explored_patches.append(Rectangle((prev_cell[1] - 0.5, prev_cell[0] - 0.5), 1, 1, 
+                                                   facecolor=COLORS['explored'], alpha=0.4, zorder=1))
+                    ax.add_patch(explored_patches[-1])
 
             if frame < len(stack_steps):
-                stack_y = [y for x, y in stack_steps[frame]]
-                stack_x = [x for x, y in stack_steps[frame]]
-                stack_plot.set_data(stack_y, stack_x)
-            else:
-                stack_plot.set_data([], [])
+                for cell in stack_steps[frame]:
+                    if cell not in [start_pos, end_pos]:  # Không ghi đè điểm bắt đầu/kết thúc
+                        stack_patches.append(Rectangle((cell[1] - 0.5, cell[0] - 0.5), 1, 1, 
+                                                    facecolor=COLORS['stack'], alpha=0.6, zorder=2))
+                        ax.add_patch(stack_patches[-1])
 
-            path_plot.set_data([], [])
-            path_markers.set_data([], [])
             title.set_text(f'Tìm kiếm DFS: Bước {frame+1}/{len(search_steps)}')
         else:
-            current_plot.set_data([], [])
-            if search_steps:
-                explored_plot.set_data(explored_x, explored_y)
-            stack_plot.set_data([], [])
             if path:
-                path_y = [y for x, y in path]
-                path_x = [x for x, y in path]
-                path_plot.set_data(path_y, path_x)
-                path_markers.set_data(path_y, path_x)
+                for cell in path:
+                    if cell not in [start_pos, end_pos]:  # Không ghi đè điểm bắt đầu/kết thúc
+                        path_patches.append(Rectangle((cell[1] - 0.5, cell[0] - 0.5), 1, 1, 
+                                                   facecolor=COLORS['path'], alpha=0.8, zorder=2))
+                        ax.add_patch(path_patches[-1])
                 title.set_text(f'Đường đi DFS: {len(path)} bước')
             else:
                 title.set_text('Không tìm thấy đường đi (DFS)!')
 
-        return current_plot, explored_plot, stack_plot, path_plot, path_markers, title
+        return [current_patch] + explored_patches + stack_patches + path_patches + [title]
 
     num_frames = len(search_steps) + (10 if path else 0)
     anim = animation.FuncAnimation(fig, update, frames=num_frames, init_func=init,
-                                   blit=True, interval=interval, repeat=False)
+                                   blit=False, interval=interval, repeat=False)
 
     if save_animation:
         os.makedirs("results", exist_ok=True)
@@ -326,6 +299,7 @@ def create_dfs_animation(maze_obj, interval=100, save_animation=False, show_plot
 
     if show_plot:
         plt.tight_layout()
+        plt.savefig('maze_animation.png')  # Lưu ảnh để kiểm tra
         plt.show()
     else:
         plt.close()
