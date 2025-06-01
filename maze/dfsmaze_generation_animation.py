@@ -10,31 +10,90 @@ from maze import Maze
 def animate_dfs_maze(size=15, interval=100):
     maze_obj = Maze(size, algorithm="dfs_backtrack")
     height, width = maze_obj.maze.shape
-    maze = np.ones((height, width), dtype=int)
-    fig, ax = plt.subplots(figsize=(8, 8))
-    im = ax.imshow(maze, cmap='binary', vmin=0, vmax=1)
+    maze = np.ones((height, width), dtype=int) * 4  # Giá trị 4 cho tường
+    fig, ax = plt.subplots(figsize=(10, 10))
+    
+    # Tùy chỉnh màu sắc
+    colors = {
+        4: 'black',    # Tường
+        0: 'white',    # Đường đi
+        1: 'green',    # Ô đã thăm
+        2: 'yellow',   # Ô hiện tại
+        3: 'red'       # Ô hàng xóm
+    }
+    cmap = plt.cm.colors.ListedColormap([colors[0], colors[1], colors[2], colors[3], colors[4]])
+    norm = plt.Normalize(0, 4)
+    im = ax.imshow(maze, cmap=cmap, norm=norm)
 
     ax.set_title("DFS Backtrack Maze Generation")
     ax.axis('off')
 
-    steps = maze_obj.generation_path
-
-    # Vẽ lưới một lần duy nhất
+    # Vẽ lưới
     for i in range(height + 1):
-        ax.axhline(i - 0.5, color='black', linewidth=1.2, zorder=10)
+        ax.axhline(i - 0.5, color='black', linewidth=1, zorder=10)
     for j in range(width + 1):
-        ax.axvline(j - 0.5, color='black', linewidth=1.2, zorder=10)
+        ax.axvline(j - 0.5, color='black', linewidth=1, zorder=10)
 
-    # Thêm frame đầu tiên là trạng thái ban đầu (toàn tường)
+    # Chú thích
+    from matplotlib.lines import Line2D
+    legend_elements = [
+        Line2D([0], [0], color=colors[4], lw=4, label='Wall'),
+        Line2D([0], [0], color=colors[0], lw=4, label='Path'),
+        Line2D([0], [0], color=colors[1], lw=4, label='Visited Cell'),
+        Line2D([0], [0], color=colors[2], lw=4, label='Current Cell'),
+        Line2D([0], [0], color=colors[3], lw=4, label='Neighbor Cell')
+    ]
+    ax.legend(handles=legend_elements, loc='upper right', fontsize=8)
+
+    steps = maze_obj.generation_path
+    visited_cells = set()
+    current_cell = None
+
     def update(frame):
+        nonlocal current_cell, visited_cells
         if frame == 0:
-            maze[:, :] = 1  # Toàn bộ là tường
+            maze[:, :] = 4  # Toàn bộ là tường
         else:
             step = steps[frame - 1]
-            if step[0] == "cell":
-                maze[step[1], step[2]] = 0
-            elif step[0] == "wall":
-                maze[step[1], step[2]] = 0
+            if step[0] == "start_cell":
+                maze[step[1], step[2]] = 2  # Ô bắt đầu (current)
+                current_cell = (step[1], step[2])
+                visited_cells.add(current_cell)
+            elif step[0] == "neighbors":
+                # Đặt lại tất cả các ô hàng xóm trước đó thành trạng thái phù hợp
+                for x, y in [(i, j) for i in range(height) for j in range(width) if maze[i, j] == 3]:
+                    if (x, y) in visited_cells:
+                        maze[x, y] = 1  # Ô đã thăm
+                    else:
+                        maze[x, y] = 4  # Tường
+                # Đánh dấu các ô hàng xóm mới
+                for x, y in step[1]:
+                    if (x, y) not in visited_cells:
+                        maze[x, y] = 3  # Ô hàng xóm
+            elif step[0] == "break_wall":
+                maze[step[1], step[2]] = 0  # Phá tường
+            elif step[0] == "new_cell":
+                # Cập nhật ô hiện tại trước đó thành đã thăm
+                if current_cell:
+                    maze[current_cell[0], current_cell[1]] = 1
+                maze[step[1], step[2]] = 2  # Ô mới là ô hiện tại
+                current_cell = (step[1], step[2])
+                visited_cells.add(current_cell)
+            elif step[0] == "push_stack":
+                maze[step[1], step[2]] = 2  # Ô hiện tại
+                current_cell = (step[1], step[2])
+            elif step[0] == "pop_stack":
+                if current_cell:
+                    maze[current_cell[0], current_cell[1]] = 1  # Ô hiện tại trước đó thành đã thăm
+                stack = [(2*x+1, 2*y+1) for x, y in step[3]]  # Stack còn lại
+                if stack:
+                    current_cell = stack[-1]
+                    maze[current_cell[0], current_cell[1]] = 2
+                else:
+                    current_cell = None
+            elif step[0] == "extra_wall":
+                maze[step[1], step[2]] = 0  # Đường đi bổ sung
+
         im.set_array(maze)
         return [im]
 

@@ -307,11 +307,16 @@ class ModernMazeApp:
         gen_frame.pack(fill=tk.X, pady=(8, 0), anchor="w")  # Căn trái
         
         self.maze_gen_algo_var = tk.StringVar(value="prim")
-        algo_options = [("Thuật Toán Prim", "prim"), ("DFS Backtrack", "dfs_backtrack")]
+        # Thêm thuật toán Kruskal vào danh sách thuật toán tạo mê cung
+        algo_options = [
+            ("Thuật Toán Prim", "prim"), 
+            ("DFS Backtrack", "dfs_backtrack"),
+            ("Thuật Toán Kruskal", "kruskal")  # Thêm Kruskal
+        ]
         
         gen_combo = ttk.Combobox(gen_frame,
                                values=[option[0] for option in algo_options],
-                               width=15,  # Giảm chiều rộng để tròn hơn
+                               width=15,
                                state="readonly",
                                style="Modern.TCombobox",
                                font=FONTS['description'])
@@ -324,6 +329,8 @@ class ModernMazeApp:
                 if display == selected_display:
                     self.maze_gen_algo_var.set(value)
                     break
+           
+            print(f"Selected maze generation algorithm: {self.maze_gen_algo_var.get()}")
         gen_combo.bind('<<ComboboxSelected>>', on_gen_algo_change)
 
     def _create_complexity_control(self, parent):
@@ -348,7 +355,7 @@ class ModernMazeApp:
         
         complexity_combo = ttk.Combobox(complexity_frame,
                                       values=[option[0] for option in complexity_options],
-                                      width=10,  # Giảm chiều rộng để tròn hơn
+                                      width=10,  
                                       state="readonly",
                                       style="Modern.TCombobox",
                                       font=FONTS['description'])
@@ -431,10 +438,12 @@ class ModernMazeApp:
         try:
             self.run_button.configure(state="disabled", text="⏳ Đang xử lý...")
             
-            self._update_status(f"Đang tạo mê cung {size}×{size} bằng {maze_gen_algo}...")
+            # Cập nhật thông báo tùy thuộc vào thuật toán tạo mê cung
+            algo_name = "Kruskal" if maze_gen_algo == "kruskal" else "Prim" if maze_gen_algo == "prim" else "DFS Backtrack"
+            self._update_status(f"Đang tạo mê cung {size}×{size} bằng thuật toán {algo_name}...")
             
             maze_obj = Maze(size, complexity=complexity, algorithm=maze_gen_algo)
-            print(f"✅ Tạo mê cung thành công: {size}×{size}, độ phức tạp: {complexity}")
+            print(f"✅ Tạo mê cung thành công: {size}×{size}, độ phức tạp: {complexity}, thuật toán: {algo_name}")
             
             self._update_status(f"Đang trực quan hóa thuật toán {selected_algo}...")
             
